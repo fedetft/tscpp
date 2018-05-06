@@ -38,7 +38,7 @@ namespace tscpp {
 int TypePool::unserializeUnknownImpl(const char *name, const void *buffer, int bufSize) const
 {
     auto it=types.find(name);
-    if(it==types.end()) return TypeNotFound;
+    if(it==types.end()) return UnknownType;
 
     if(it->second.size>bufSize) return BufferTooSmall;
 
@@ -79,7 +79,7 @@ int unserializeImpl(const char *name, void *data, int size, const void *buffer, 
     if(serializedSize>bufSize) return BufferTooSmall;
 
     const char *buf=reinterpret_cast<const char*>(buffer);
-    if(memcmp(buf,name,nameSize+1)) return TypeMismatch;
+    if(memcmp(buf,name,nameSize+1)) return WrongType;
 
     //NOTE: we are writing on top of a constructed type without calling its
     //destructor. However, since it is trivially copyable, we at least aren't

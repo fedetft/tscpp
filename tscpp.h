@@ -44,8 +44,8 @@ namespace tscpp {
 enum TscppError
 {
     BufferTooSmall = -1, ///< Buffer is too small for the given type
-    TypeMismatch   = -2, ///< While unserializing a different type was found
-    TypeNotFound   = -3  ///< While unserializing the type was not found in the pool
+    WrongType      = -2, ///< While unserializing a different type was found
+    UnknownType    = -3  ///< While unserializing the type was not found in the pool
 };
 
 /**
@@ -140,7 +140,7 @@ int unserializeImpl(const char *name, void *data, int size, const void *buffer, 
  * \param buffer pointer to buffer where the serialized type is
  * \param bufSize buffer size
  * \return the size of the unserialized type (which is larger than sizeof(T) due
- * to serialization overhead), or TscppError::TypeMismatch if the buffer does
+ * to serialization overhead), or TscppError::WrongType if the buffer does
  * not contain the given type or TscppError::BufferTooSmall if the type is
  * truncated, i.e the buffer is smaller tah the serialized type size
  */
@@ -159,7 +159,7 @@ int unserialize(T& t, const void *buffer, int bufSize)
  * \param buffer pointer to buffer where the serialized type is
  * \param bufSize buffer size
  * \return the size of the unserialized type (which is larger than sizeof(T) due
- * to serialization overhead), or TscppError::TypeNotFound if the pool does
+ * to serialization overhead), or TscppError::UnknownType if the pool does
  * not contain the type found in the buffer or TscppError::BufferTooSmall if the 
  * type is truncated, i.e the buffer is smaller tah the serialized type size
  */
@@ -168,12 +168,12 @@ int unserializeUnknown(const TypePool& tp, const void *buffer, int bufSize);
 /**
  * Given a buffer where a type has been serialized, return the C++ mangled
  * name of the serialized type.
- * It is useful when unserialize returns TscppError::TypeMismatch to print an
+ * It is useful when unserialize returns TscppError::WrongType to print an
  * error message with the name of the type in the buffer
  * \code
  * Foo f;
  * auto result=unserialize(f,buffer,size);
- * if(result==TypeMismatch)
+ * if(result==WrongType)
  * {
  *     cerr<<"While unserializing Foo, "<<demangle(peekTypeName(buffer,size))<<" was found\n";
  * }
