@@ -97,6 +97,11 @@ public:
      */
     int unserializeUnknownImpl(const char *name, const void *buffer, int bufSize) const;
     
+    /**
+     * \internal
+     */
+    void unserializeUnknownImpl(const std::string& name, std::istream& is, std::streampos pos) const;
+    
 private:
     std::map<std::string,UnserializerImpl> types; ///< Registered types
 };
@@ -250,18 +255,17 @@ public:
      * \internal
      */
     void unserializeImpl(const char *name, void *data, int size);
-    
-    /**
-     * \internal
-     */
-    void errorImpl(const std::string& errorStr, bool printName=false);
 
 private:
     InputArchive(const InputArchive&)=delete;
     InputArchive& operator=(const InputArchive&)=delete;
+    
+    /**
+     * \internal
+     */
+    void wrongType(std::streampos pos);
 
     std::istream& is;
-    std::streampos pos;
 };
 
 /**
@@ -282,6 +286,36 @@ InputArchive& operator>>(InputArchive& ia, T& t)
 }
 
 /**
+ * The unknown input archive.
+ * This class allows to unserialize types from a stream which have been
+ * serialized in an unknown order.
+ */
+class UnknownInputArchive
+{
+public:
+    /**
+     * Constructor
+     * \param os ostream where srialized types will be written
+     */
+    UnknownInputArchive(std::istream& is, const TypePool& tp) : is(is), tp(tp) {}
+
+    /**
+     * Unserialize one type from the input stream, calling the corresponding
+     * callback in the TypePool
+     * \throws TscppException if the type found in the stream has not been
+     * registred in the TypePool or if the stream eof is found
+     */
+    void unserialize();
+
+private:
+    UnknownInputArchive(const UnknownInputArchive&)=delete;
+    UnknownInputArchive& operator=(const UnknownInputArchive&)=delete;
+
+    std::istream& is;
+    const TypePool& tp;
+};
+
+/**
  * Exception class thrown by the input archives
  */
 class TscppException : public std::runtime_error
@@ -295,8 +329,8 @@ public:
     /**
      * \internal
      */
-    TscppException(const std::string& what, const std::string& t)
-        : runtime_error(what), t(t) {}
+    TscppException(const std::string& what, const std::string& n)
+        : runtime_error(what), n(n) {}
     
     /**
      * If the exception is thrown because an unknown/unexpected type has been
@@ -310,16 +344,16 @@ public:
      * try {
      *     ia>>f;
      * } catch(TscppException& ex) {
-     *     if(ex.type().empty()==false)
-     *         cerr<<"While unserializing Foo, "<<demangle(ex.type())<<" was found\n";
+     *     if(ex.name().empty()==false)
+     *         cerr<<"While unserializing Foo, "<<demangle(ex.name())<<" was found\n";
      * }
      * \endcode
      * \return the serialized type name, or "" if eof was found
      */
-    std::string type() const { return t; }
+    std::string name() const { return n; }
 
 private:
-    std::string t;
+    std::string n;
 };
 
 } // namespace tscpp

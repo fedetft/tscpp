@@ -46,6 +46,20 @@ int TypePool::unserializeUnknownImpl(const char *name, const void *buffer, int b
     return it->second.size;
 }
 
+void TypePool::unserializeUnknownImpl(const string& name, istream& is, streampos pos) const
+{
+    auto it=types.find(name);
+    if(it==types.end()) {
+        is.seekg(pos);
+        throw TscppException("unknown type",name);
+    }
+
+    unique_ptr<char[]> unserialized(new char[it->second.size]);
+    is.read(reinterpret_cast<char*>(unserialized.get()),it->second.size);
+    if(is.eof()) throw TscppException("eof");
+    it->second.usc(unserialized.get());
+}
+
 int serializeImpl(void *buffer, int bufSize, const char *name, const void *data, int size)
 {
     int nameSize=strlen(name);
@@ -117,32 +131,42 @@ void OutputArchive::serializeImpl(const char *name, const void *data, int size)
 
 void InputArchive::unserializeImpl(const char *name, void *data, int size)
 {
-    pos=is.tellg();
+    auto pos=is.tellg();
     int nameSize=strlen(name);
     unique_ptr<char[]> unserializedName(new char[nameSize+1]);
     is.read(unserializedName.get(),nameSize+1);
-    if(is.eof()) errorImpl("eof");
+    if(is.eof()) throw TscppException("eof");
 
-    if(memcmp(unserializedName.get(),name,nameSize+1))
-        errorImpl("wrong type found",true);
+    if(memcmp(unserializedName.get(),name,nameSize+1)) wrongType(pos);
 
     //NOTE: we are writing on top of a constructed type without calling its
     //destructor. However, since it is trivially copyable, we at least aren't
     //overwriting pointers to allocated memory.
     is.read(reinterpret_cast<char*>(data),size);
-    if(is.eof()) errorImpl("eof");
+    if(is.eof()) throw TscppException("eof");
 }
 
-void InputArchive::errorImpl(const string& errorStr, bool printName)
+void InputArchive::wrongType(streampos pos)
 {
     is.seekg(pos);
-    if(printName==false) throw TscppException(errorStr);
-    else {
-        string type;
-        getline(is,type,'\0');
+    string name;
+    getline(is,name,'\0');
+    is.seekg(pos);
+    throw TscppException("wrong type",name);
+}
+
+void UnknownInputArchive::unserialize()
+{
+    auto pos=is.tellg();
+    string name;
+    getline(is,name,'\0');
+    if(is.eof())
+    {
         is.seekg(pos);
-        throw TscppException(errorStr,type);
+        throw TscppException("eof");
     }
+
+    tp.unserializeUnknownImpl(name,is,pos);
 }
 
 } //namespace tscpp
