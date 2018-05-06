@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "tscpp.h"
+#include <memory>
 #if defined(__GNUC__) && !defined(_MIOSIX)
 #include <cxxabi.h>
 #endif
@@ -105,6 +106,42 @@ string demangle(const string& name)
     #else
     return name; //Demangle not supported
     #endif
+}
+
+void OutputArchive::serializeImpl(const char *name, const void *data, int size)
+{
+    int nameSize=strlen(name);
+    os.write(name,nameSize+1);
+    os.write(reinterpret_cast<const char*>(data),size);
+}
+
+void InputArchive::unserializeImpl(const char *name, void *data, int size)
+{
+    auto pos=is.tellg();
+    int nameSize=strlen(name);
+    unique_ptr<char[]> unserializedName(new char[nameSize+1]);
+    is.read(unserializedName.get(),nameSize+1);
+    if(is.eof())
+    {
+        is.seekg(pos);
+        throw 1; //FIXME
+    }
+
+    if(memcmp(unserializedName.get(),name,nameSize+1))
+    {
+        is.seekg(pos);
+        throw 2; //FIXME
+    }
+
+    //NOTE: we are writing on top of a constructed type without calling its
+    //destructor. However, since it is trivially copyable, we at least aren't
+    //overwriting pointers to allocated memory.
+    is.read(reinterpret_cast<char*>(data),size);
+    if(is.eof())
+    {
+        is.seekg(pos);
+        throw 3; //FIXME
+    }
 }
 
 } //namespace tscpp

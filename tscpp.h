@@ -29,6 +29,8 @@
 
 #include <type_traits>
 #include <functional>
+#include <ostream>
+#include <istream>
 #include <cstring>
 #include <string>
 #include <map>
@@ -185,5 +187,89 @@ std::string peekTypeName(const void *buffer, int bufSize);
  * \return the demangled name
  */
 std::string demangle(const std::string& name);
+
+/**
+ * The output archive.
+ * This class allows to serialize objects to any ostream using the familiar
+ * << syntax
+ */
+class OutputArchive
+{
+public:
+    /**
+     * Constructor
+     * \param os ostream where srialized types will be written
+     */
+    OutputArchive(std::ostream& os) : os(os) {}
+
+    /**
+     * \internal
+     */
+    void serializeImpl(const char *name, const void *data, int size);
+
+private:
+    OutputArchive(const OutputArchive&)=delete;
+    OutputArchive& operator=(const OutputArchive&)=delete;
+
+    std::ostream& os;
+};
+
+/**
+ * Serialize a type
+ * \param oa archive where the type will be serialized
+ * \param t type to serialize
+ */
+template<typename T>
+OutputArchive& operator<<(OutputArchive& oa, const T& t)
+{
+    #ifndef _MIOSIX
+    static_assert(std::is_trivially_copyable<T>::value,"Type is not trivially copyable");
+    #endif
+    oa.serializeImpl(typeid(t).name(),&t,sizeof(t));
+    return oa;
+}
+
+/**
+ * The input archive.
+ * This class allows to unserialize types from a stream, as long as you know
+ * what types have been serialized in which order. Otherwise have a look at
+ * UnknownInputArchive.
+ * To unserialize, use the familiar >> syntax.
+ */
+class InputArchive
+{
+public:
+    /**
+     * Constructor
+     * \param os ostream where srialized types will be written
+     */
+    InputArchive(std::istream& is) : is(is) {}
+
+    /**
+     * \internal
+     */
+    void unserializeImpl(const char *name, void *data, int size);
+
+private:
+    InputArchive(const InputArchive&)=delete;
+    InputArchive& operator=(const InputArchive&)=delete;
+
+    std::istream& is;
+};
+
+/**
+ * Unserialize a type
+ * \param ia archive where the type has been serialized
+ * \param t type to unserialize
+ */
+template<typename T>
+InputArchive& operator>>(InputArchive& ia, T& t)
+{
+    #ifndef _MIOSIX
+    static_assert(std::is_trivially_copyable<T>::value,"Type is not trivially copyable");
+    #endif
+    ia.unserializeImpl(typeid(t).name(),&t,sizeof(t));
+    return ia;
+}
 
 } // namespace tscpp
