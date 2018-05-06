@@ -346,6 +346,7 @@ public:
      * } catch(TscppException& ex) {
      *     if(ex.name().empty()==false)
      *         cerr<<"While unserializing Foo, "<<demangle(ex.name())<<" was found\n";
+     *     else cerr<<ex.what()<<endl;
      * }
      * \endcode
      * \return the serialized type name, or "" if eof was found

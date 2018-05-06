@@ -160,11 +160,7 @@ void UnknownInputArchive::unserialize()
     auto pos=is.tellg();
     string name;
     getline(is,name,'\0');
-    if(is.eof())
-    {
-        is.seekg(pos);
-        throw TscppException("eof");
-    }
+    if(is.eof()) throw TscppException("eof");
 
     tp.unserializeUnknownImpl(name,is,pos);
 }
