@@ -29,6 +29,7 @@
 
 #include <type_traits>
 #include <functional>
+#include <stdexcept>
 #include <ostream>
 #include <istream>
 #include <cstring>
@@ -174,8 +175,8 @@ int unserializeUnknown(const TypePool& tp, const void *buffer, int bufSize);
  * \endcode
  * \param buffer pointer to buffer where the serialized type is
  * \param bufSize buffer size
- * \return the serialized type name, or "<corrupted>" if the buffer does not
- * contain a type name
+ * \return the serialized type name, or "" if the buffer does not contain a type
+ * name
  */
 std::string peekTypeName(const void *buffer, int bufSize);
 
@@ -249,18 +250,26 @@ public:
      * \internal
      */
     void unserializeImpl(const char *name, void *data, int size);
+    
+    /**
+     * \internal
+     */
+    void errorImpl(const std::string& errorStr, bool printName=false);
 
 private:
     InputArchive(const InputArchive&)=delete;
     InputArchive& operator=(const InputArchive&)=delete;
 
     std::istream& is;
+    std::streampos pos;
 };
 
 /**
  * Unserialize a type
  * \param ia archive where the type has been serialized
  * \param t type to unserialize
+ * \throws TscppException if the type found in the stream is not the one
+ * expected, or if the stream eof is found
  */
 template<typename T>
 InputArchive& operator>>(InputArchive& ia, T& t)
@@ -271,5 +280,46 @@ InputArchive& operator>>(InputArchive& ia, T& t)
     ia.unserializeImpl(typeid(t).name(),&t,sizeof(t));
     return ia;
 }
+
+/**
+ * Exception class thrown by the input archives
+ */
+class TscppException : public std::runtime_error
+{
+public:
+    /**
+     * \internal
+     */
+    TscppException(const std::string& what) : runtime_error(what) {}
+    
+    /**
+     * \internal
+     */
+    TscppException(const std::string& what, const std::string& t)
+        : runtime_error(what), t(t) {}
+    
+    /**
+     * If the exception is thrown because an unknown/unexpected type has been
+     * found in the input stream, this member function allows to access the
+     * mangled type name.
+     * It is useful to print an error message with the name of the type in the
+     * stream
+     * \code
+     * InputArchive ia(is);
+     * Foo f;
+     * try {
+     *     ia>>f;
+     * } catch(TscppException& ex) {
+     *     if(ex.type().empty()==false)
+     *         cerr<<"While unserializing Foo, "<<demangle(ex.type())<<" was found\n";
+     * }
+     * \endcode
+     * \return the serialized type name, or "" if eof was found
+     */
+    std::string type() const { return t; }
+
+private:
+    std::string t;
+};
 
 } // namespace tscpp

@@ -90,7 +90,7 @@ string peekTypeName(const void *buffer, int bufSize)
 {
     const char *buf=reinterpret_cast<const char*>(buffer);
     int nameSize=strnlen(buf,bufSize);
-    if(nameSize>=bufSize) return "<corrupted>";
+    if(nameSize>=bufSize) return "";
     return buf;
 }
 
@@ -117,30 +117,31 @@ void OutputArchive::serializeImpl(const char *name, const void *data, int size)
 
 void InputArchive::unserializeImpl(const char *name, void *data, int size)
 {
-    auto pos=is.tellg();
+    pos=is.tellg();
     int nameSize=strlen(name);
     unique_ptr<char[]> unserializedName(new char[nameSize+1]);
     is.read(unserializedName.get(),nameSize+1);
-    if(is.eof())
-    {
-        is.seekg(pos);
-        throw 1; //FIXME
-    }
+    if(is.eof()) errorImpl("eof");
 
     if(memcmp(unserializedName.get(),name,nameSize+1))
-    {
-        is.seekg(pos);
-        throw 2; //FIXME
-    }
+        errorImpl("wrong type found",true);
 
     //NOTE: we are writing on top of a constructed type without calling its
     //destructor. However, since it is trivially copyable, we at least aren't
     //overwriting pointers to allocated memory.
     is.read(reinterpret_cast<char*>(data),size);
-    if(is.eof())
-    {
+    if(is.eof()) errorImpl("eof");
+}
+
+void InputArchive::errorImpl(const string& errorStr, bool printName)
+{
+    is.seekg(pos);
+    if(printName==false) throw TscppException(errorStr);
+    else {
+        string type;
+        getline(is,type,'\0');
         is.seekg(pos);
-        throw 3; //FIXME
+        throw TscppException(errorStr,type);
     }
 }
 
