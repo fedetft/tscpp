@@ -97,7 +97,9 @@ int unserializeUnknown(const TypePool& tp, const void *buffer, int bufSize)
     const char *name=buf;
     buf+=nameSize+1;
     bufSize-=nameSize+1;
-    return tp.unserializeUnknownImpl(name,buf,bufSize)+nameSize+1;
+    auto result=tp.unserializeUnknownImpl(name,buf,bufSize);
+    if(result<0) return result;
+    return result+nameSize+1;
 }
 
 string peekTypeName(const void *buffer, int bufSize)
