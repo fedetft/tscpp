@@ -79,19 +79,7 @@ public:
             callback(t);
         });
     }
-    
-    /**
-     * \internal
-     */
-    class UnserializerImpl
-    {
-    public:
-        UnserializerImpl() : size(0) {}
-        UnserializerImpl(int size, std::function<void (const void*)> usc) : size(size), usc(usc) {}
-        int size;
-        std::function<void (const void*)> usc;
-    };
-    
+
     /**
      * \internal
      */
@@ -103,6 +91,18 @@ public:
     void unserializeUnknownImpl(const std::string& name, std::istream& is, std::streampos pos) const;
     
 private:
+    /**
+     * \internal
+     */
+    class UnserializerImpl
+    {
+    public:
+        UnserializerImpl() : size(0) {}
+        UnserializerImpl(int size, std::function<void (const void*)> usc) : size(size), usc(usc) {}
+        int size;
+        std::function<void (const void*)> usc;
+    };
+
     std::map<std::string,UnserializerImpl> types; ///< Registered types
 };
 
