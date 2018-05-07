@@ -43,10 +43,7 @@ void TypePoolStream::unserializeUnknownImpl(const string& name, istream& is, str
         throw TscppException("unknown type",name);
     }
 
-    unique_ptr<char[]> unserialized(new char[it->second.size]);
-    is.read(reinterpret_cast<char*>(unserialized.get()),it->second.size);
-    if(is.eof()) throw TscppException("eof");
-    it->second.usc(unserialized.get());
+    it->second(is);
 }
 
 void OutputArchive::serializeImpl(const char *name, const void *data, int size)

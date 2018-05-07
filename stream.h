@@ -50,6 +50,48 @@
 namespace tscpp {
 
 /**
+ * Exception class thrown by the input archives
+ */
+class TscppException : public std::runtime_error
+{
+public:
+    /**
+     * \internal
+     */
+    TscppException(const std::string& what) : runtime_error(what) {}
+    
+    /**
+     * \internal
+     */
+    TscppException(const std::string& what, const std::string& n)
+        : runtime_error(what), n(n) {}
+    
+    /**
+     * If the exception is thrown because an unknown/unexpected type has been
+     * found in the input stream, this member function allows to access the
+     * mangled type name.
+     * It is useful to print an error message with the name of the type in the
+     * stream
+     * \code
+     * InputArchive ia(is);
+     * Foo f;
+     * try {
+     *     ia>>f;
+     * } catch(TscppException& ex) {
+     *     if(ex.name().empty()==false)
+     *         cerr<<"While unserializing Foo, "<<demangle(ex.name())<<" was found\n";
+     *     else cerr<<ex.what()<<endl;
+     * }
+     * \endcode
+     * \return the serialized type name, or "" if eof was found
+     */
+    std::string name() const { return n; }
+
+private:
+    std::string n;
+};
+
+/**
  * Type pool for the TSCPP stream API.
  * A type pool is a class where you can register types and associate callbacks
  * to them. It is used to unserialize types when you don't know the exact type
@@ -69,7 +111,7 @@ public:
         #ifndef _MIOSIX
         static_assert(std::is_trivially_copyable<T>::value,"Type is not trivially copyable");
         #endif
-        types[typeid(T).name()]=UnserializerImpl(sizeof(T),[=](const void *buffer) {
+        types[typeid(T).name()]=[=](std::istream& is) {
             //NOTE: We copy the buffer to respect alignment requirements.
             //The buffer may not be suitably aligned for the unserialized type
             //TODO: support classes without default constructor
@@ -77,9 +119,10 @@ public:
             //destructor. However, since it is trivially copyable, we at least aren't
             //overwriting pointers to allocated memory.
             T t;
-            memcpy(&t,buffer,sizeof(T));
+            is.read(reinterpret_cast<char*>(&t),sizeof(T));
+            if(is.eof()) throw TscppException("eof");
             callback(t);
-        });
+        };
     }
     
     /**
@@ -88,19 +131,7 @@ public:
     void unserializeUnknownImpl(const std::string& name, std::istream& is, std::streampos pos) const;
     
 private:
-    /**
-     * \internal
-     */
-    class UnserializerImpl
-    {
-    public:
-        UnserializerImpl() : size(0) {}
-        UnserializerImpl(int size, std::function<void (const void*)> usc) : size(size), usc(usc) {}
-        int size;
-        std::function<void (const void*)> usc;
-    };
-
-    std::map<std::string,UnserializerImpl> types; ///< Registered types
+    std::map<std::string,std::function<void (std::istream&)>> types; ///< Registered types
 };
 
 /**
@@ -222,48 +253,6 @@ private:
 
     std::istream& is;
     const TypePoolStream& tp;
-};
-
-/**
- * Exception class thrown by the input archives
- */
-class TscppException : public std::runtime_error
-{
-public:
-    /**
-     * \internal
-     */
-    TscppException(const std::string& what) : runtime_error(what) {}
-    
-    /**
-     * \internal
-     */
-    TscppException(const std::string& what, const std::string& n)
-        : runtime_error(what), n(n) {}
-    
-    /**
-     * If the exception is thrown because an unknown/unexpected type has been
-     * found in the input stream, this member function allows to access the
-     * mangled type name.
-     * It is useful to print an error message with the name of the type in the
-     * stream
-     * \code
-     * InputArchive ia(is);
-     * Foo f;
-     * try {
-     *     ia>>f;
-     * } catch(TscppException& ex) {
-     *     if(ex.name().empty()==false)
-     *         cerr<<"While unserializing Foo, "<<demangle(ex.name())<<" was found\n";
-     *     else cerr<<ex.what()<<endl;
-     * }
-     * \endcode
-     * \return the serialized type name, or "" if eof was found
-     */
-    std::string name() const { return n; }
-
-private:
-    std::string n;
 };
 
 /**
