@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include <cassert>
-#include <tscpp.h>
+#include <tscpp/buffer.h>
 #include "types.h"
 
 using namespace std;

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cassert>
 #include <cstdlib>
-#include <tscpp.h>
+#include <tscpp/buffer.h>
 #include "types.h"
 
 using namespace std;
@@ -16,7 +16,7 @@ int main()
     MiscData md(p2d,p3d,12,-1);
     
     //Prepare a type pool for unserialization
-    TypePool tp;
+    TypePoolBuffer tp;
     tp.registerType<Point2d>([&](Point2d& t)
     {
         cout<<"Found a Point2d"<<endl;

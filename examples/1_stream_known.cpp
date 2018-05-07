@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
-#include <tscpp.h>
+#include <tscpp/stream.h>
 #include "types.h"
 
 using namespace std;

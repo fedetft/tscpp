@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
-#include <tscpp.h>
+#include <tscpp/stream.h>
 #include "types.h"
 
 using namespace std;
@@ -67,7 +67,7 @@ int main()
         }
     }
     
-    TypePool tp;
+    TypePoolStream tp;
     tp.registerType<Point2d>([&](Point2d& t) { assert(false); });
     tp.registerType<Point3d>([&](Point3d& t) { assert(false); });
 

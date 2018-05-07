@@ -25,6 +25,17 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+/**
+ * \file stream.h
+ * TSCPP stream API. This file contains classes to serialize types to std
+ * streams. These classes provide a high level API compatible with the C++ stl.
+ * Error reporting is performed through exceptions.
+ * 
+ * NOTE: the serialization format between the buffer and stream API is
+ * interchangeable, so you can for example serialize using the buffer API and
+ * unserialize using the stream API.
+ */
+
 #pragma once
 
 #include <type_traits>
@@ -39,21 +50,12 @@
 namespace tscpp {
 
 /**
- * Error codes returned by the buffer API of tscpp
- */
-enum TscppError
-{
-    BufferTooSmall = -1, ///< Buffer is too small for the given type
-    WrongType      = -2, ///< While unserializing a different type was found
-    UnknownType    = -3  ///< While unserializing the type was not found in the pool
-};
-
-/**
+ * Type pool for the TSCPP stream API.
  * A type pool is a class where you can register types and associate callbacks
  * to them. It is used to unserialize types when you don't know the exact type
  * or order in which types have been serialized.
  */
-class TypePool
+class TypePoolStream
 {
 public:
     /**
@@ -79,11 +81,6 @@ public:
             callback(t);
         });
     }
-
-    /**
-     * \internal
-     */
-    int unserializeUnknownImpl(const char *name, const void *buffer, int bufSize) const;
     
     /**
      * \internal
@@ -105,94 +102,6 @@ private:
 
     std::map<std::string,UnserializerImpl> types; ///< Registered types
 };
-
-/**
- * \internal
- */
-int serializeImpl(void *buffer, int bufSize, const char *name, const void *data, int size);
-
-/**
- * Serialize a type to a memory buffer
- * \param buffer ponter to the memory buffer where to serialize the type
- * \param bufSize buffer size
- * \param t type to serialize
- * \return the size of the serialized type (which is larger than sizeof(T) due
- * to serialization overhead), or TscppError::BufferTooSmall if the given
- * buffer is too small
- */
-template<typename T>
-int serialize(void *buffer, int bufSize, const T& t)
-{
-    #ifndef _MIOSIX
-    static_assert(std::is_trivially_copyable<T>::value,"Type is not trivially copyable");
-    #endif
-    return serializeImpl(buffer,bufSize,typeid(t).name(),&t,sizeof(t));
-}
-
-/**
- * \internal
- */
-int unserializeImpl(const char *name, void *data, int size, const void *buffer, int bufSize);
-
-/**
- * Unserialize a known type from a memory buffer
- * \param t type to unserialize
- * \param buffer pointer to buffer where the serialized type is
- * \param bufSize buffer size
- * \return the size of the unserialized type (which is larger than sizeof(T) due
- * to serialization overhead), or TscppError::WrongType if the buffer does
- * not contain the given type or TscppError::BufferTooSmall if the type is
- * truncated, i.e the buffer is smaller tah the serialized type size
- */
-template<typename T>
-int unserialize(T& t, const void *buffer, int bufSize)
-{
-    #ifndef _MIOSIX
-    static_assert(std::is_trivially_copyable<T>::value,"Type is not trivially copyable");
-    #endif
-    return unserializeImpl(typeid(t).name(),&t,sizeof(t),buffer,bufSize);
-}
-
-/**
- * Unserialize an unknown type from a memory buffer
- * \param tp type pool where possible serialized types are registered
- * \param buffer pointer to buffer where the serialized type is
- * \param bufSize buffer size
- * \return the size of the unserialized type (which is larger than sizeof(T) due
- * to serialization overhead), or TscppError::UnknownType if the pool does
- * not contain the type found in the buffer or TscppError::BufferTooSmall if the 
- * type is truncated, i.e the buffer is smaller tah the serialized type size
- */
-int unserializeUnknown(const TypePool& tp, const void *buffer, int bufSize);
-
-/**
- * Given a buffer where a type has been serialized, return the C++ mangled
- * name of the serialized type.
- * It is useful when unserialize returns TscppError::WrongType to print an
- * error message with the name of the type in the buffer
- * \code
- * Foo f;
- * auto result=unserialize(f,buffer,size);
- * if(result==WrongType)
- * {
- *     cerr<<"While unserializing Foo, "<<demangle(peekTypeName(buffer,size))<<" was found\n";
- * }
- * \endcode
- * \param buffer pointer to buffer where the serialized type is
- * \param bufSize buffer size
- * \return the serialized type name, or "" if the buffer does not contain a type
- * name
- */
-std::string peekTypeName(const void *buffer, int bufSize);
-
-/**
- * Demangle a C++ name. Useful for printing type names in error logs.
- * This function may not be supported in all platforms, in this case it returns
- * the the same string passed as a parameter.
- * \param name name to demangle
- * \return the demangled name
- */
-std::string demangle(const std::string& name);
 
 /**
  * The output archive.
@@ -297,7 +206,7 @@ public:
      * Constructor
      * \param os ostream where srialized types will be written
      */
-    UnknownInputArchive(std::istream& is, const TypePool& tp) : is(is), tp(tp) {}
+    UnknownInputArchive(std::istream& is, const TypePoolStream& tp) : is(is), tp(tp) {}
 
     /**
      * Unserialize one type from the input stream, calling the corresponding
@@ -312,7 +221,7 @@ private:
     UnknownInputArchive& operator=(const UnknownInputArchive&)=delete;
 
     std::istream& is;
-    const TypePool& tp;
+    const TypePoolStream& tp;
 };
 
 /**
@@ -356,5 +265,14 @@ public:
 private:
     std::string n;
 };
+
+/**
+ * Demangle a C++ name. Useful for printing type names in error logs.
+ * This function may not be supported in all platforms, in this case it returns
+ * the the same string passed as a parameter.
+ * \param name name to demangle
+ * \return the demangled name
+ */
+std::string demangle(const std::string& name);
 
 } // namespace tscpp
