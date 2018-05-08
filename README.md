@@ -87,7 +87,7 @@ terminator, followed by the object itself.
 
 ## What are the limitations
 
-* Only objects with a flat meory layout, i.e. without pointers, references, virtual functions can be serialized
+* Only objects with a flat memory layout, i.e. without pointers, references, virtual functions can be serialized
 * The serialization format is not portable between different machines if
   * the endianness of the two machines differ
   * the C++ name mangling scheme differs (e.g: Windows has its own incompatible name mangling scheme)
