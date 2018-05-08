@@ -83,7 +83,7 @@ The serialization format is simply the C++ mangled name of the type to be
 serialized (as returned by typeid(type).name()), followed by a '\0' string
 terminator, followed by the object itself.
 
-![alt text](https://github.com/fedetft/tscpp/.readme1.png "Serialization example")
+![Memory layout](https://github.com/fedetft/tscpp/raw/master/.readme1.png)
 
 ## What are the limitations
 
