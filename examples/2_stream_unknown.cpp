@@ -34,13 +34,13 @@ int main()
         assert(t==md);
     });
     
-    //Serialize to buffer
+    //Serialize to stream
     stringstream ss;
     OutputArchive oa(ss);
 
     oa<<p2d<<p3d<<md;
     
-    //Unserialize from buffer
+    //Unserialize from stream
     UnknownInputArchive ia(ss,tp);
     ia.unserialize();
     ia.unserialize();

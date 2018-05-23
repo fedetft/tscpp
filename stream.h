@@ -115,7 +115,7 @@ public:
             //NOTE: We copy the buffer to respect alignment requirements.
             //The buffer may not be suitably aligned for the unserialized type
             //TODO: support classes without default constructor
-            //NOTE: we are writing on top of a constructed type without callingits
+            //NOTE: we are writing on top of a constructed type without calling its
             //destructor. However, since it is trivially copyable, we at least aren't
             //overwriting pointers to allocated memory.
             T t;
@@ -187,7 +187,7 @@ class InputArchive
 public:
     /**
      * Constructor
-     * \param os ostream where srialized types will be written
+     * \param is istream where srialized types will be read
      */
     InputArchive(std::istream& is) : is(is) {}
 
@@ -235,7 +235,9 @@ class UnknownInputArchive
 public:
     /**
      * Constructor
-     * \param os ostream where srialized types will be written
+     * \param is istream where srialized types will be read
+     * \param tp TypePool containing the registered types and callbacks that
+     * will be called as types are unserialized
      */
     UnknownInputArchive(std::istream& is, const TypePoolStream& tp) : is(is), tp(tp) {}
 

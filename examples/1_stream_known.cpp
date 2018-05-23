@@ -10,13 +10,13 @@ using namespace tscpp;
 
 int main()
 {
-    //Serialize to buffer
+    //Serialize to stream
     Point3d p1(1,2,3);
     stringstream ss;
     OutputArchive oa(ss);
     oa<<p1;
     
-    //Unserialize from buffer
+    //Unserialize from stream
     Point3d p2;
     InputArchive ia(ss);
     ia>>p2;

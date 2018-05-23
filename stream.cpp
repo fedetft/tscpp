@@ -38,7 +38,8 @@ namespace tscpp {
 void TypePoolStream::unserializeUnknownImpl(const string& name, istream& is, streampos pos) const
 {
     auto it=types.find(name);
-    if(it==types.end()) {
+    if(it==types.end())
+    {
         is.seekg(pos);
         throw TscppException("unknown type",name);
     }
